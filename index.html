@@ -23,15 +23,15 @@
                 <section>
                     <p>Code:</p>
                     <pre>
-$db = new mysqli('host', 'username', 'password', 'database');
+1: $db = new mysqli('host', 'username', 'password', 'database');
 
-$query = "SELECT * FROM users WHERE username = '" . <span style="color: red;">$_GET['username']</span> . "' LIMIT 1;";
+2: $query = "SELECT * FROM users WHERE username = '" . <span style="color: red;">$_GET['username']</span> . "' LIMIT 1;";
 
-$result = $db->query($query);
+3: $result = $db->query($query);
 
-while ($row = $result->fetch_assoc()) {
-    print_r($row);
-}</pre>
+4: while ($row = $result->fetch_assoc()) {
+ :     print_r($row);
+ : }</pre>
                     <div class="fragment">
                     <p>Request:</p>
                     <pre>curl 'http://example.com/user.php?username=%27+OR+1+--'</pre>
@@ -115,8 +115,6 @@ Array
                     <div class="fragment">
                     <p>Request:</p>
                     <pre>http://example.com/search.php?q=%22+onfocus%3D%22alert%28%27XSS%27%29%22+autofocus%3D%22</pre>
-                    </div>
-                    <div class="fragment">
                     <p>Effect:</p>
                     <p>Alert box with content "XSS"</p>
                     </div>

@@ -17,20 +17,18 @@ It's a way for an attacker to inject unexpected code into your SQL queries and
 alter the intent of the query. Example, an attacker could change a select query
 to become a drop database query, thus deleting the entire database. Ouch.
 
-Enough with the talking, let's show some code!
+But enough with the talking, let's show some code!
 
 [next slide]
 
 So, given the following PHP code which uses string concatenation to create a
-query; with a value taken from the URL query parameters
+query; with a value taken from the URL query parameters. That's statement number 2.
 
 [code]
 
 Lets an attacker issue the following request
 
 [next fragment]
-
-[code]
 
 [next fragment]
 
@@ -57,13 +55,68 @@ query parser only needs to parse the query once.
 
 [next slide]
 
-Read more about SQL injections on Detectify and OWASP.
+You can read more about SQL injections on Detectify and OWASP.
 
 [links]
 
 [next slide]
 
-So, onto the next vulnerability which is XSS -- Cross Site Scripting
+So, onto the next vulnerability which is CSRF -- Cross-Site Request Forgery
+
+[next fragment]
+
+What's CSRF? CSRF allows an attacker to execute unwanted actions on a web
+application where the user is currently authenticated.
+
+[next fragment]
+
+Example, the user authenticates on bank.com, then visits bankfraud.com, which
+loads an image, where the src is the URL to transfer funds from the currently
+authenticated user to another account.
+
+This attack can also be used by XSS attacks, which means that the attacker simply
+needs to get the user to click a URL, like a URL sent via an email!
+
+A common way of trying to prevent this, is to require POST on each URL making
+a change, but this can also be abused by an attacker, by simply creating a form
+on bankfraud.com making a POST request.
+
+Let's figure out how to prevent this!
+
+[next slide]
+
+[next fragment]
+
+The OWASP recommended way of preventing this is to generate a secure token,
+embedding that in form as a hidden input field, also storing on the server and
+validate that the POSTed token is eqaul to the stored token on the server.
+
+The token should be tied to the authenticated user and the users current session.
+
+So no static tokens and no tokens per user only, it needs to be tied to the
+session as well.
+
+[next fragment]
+
+An additional security measure is to use something called double submit cookies,
+which essentially means that in addition to storing the token as an input field,
+you also store the token in a cookie, and validating both the input token and the
+cookie token on POST.
+
+[next fragment]
+
+Additional measures for added security is to check the referer header, the origin
+header, having a CAPTCHA, requiring the user to authenticate once more, commonly
+done when changing passwords, and also one-time tokens, via SMS or BankID or
+something similar to that.
+
+[next slide]
+
+You can read more about CSRF on Detectify and OWASP.
+
+[next slide]
+
+So, onto the next vulnerability which is XSS -- Cross-Site Scripting
 
 [next fragment]
 
@@ -85,3 +138,255 @@ by an attacker you ask, well, by injecting some encoded JavaScript in the URL.
 
 This harmless snippet will create an alert box which says "XSS", but an evil
 attacker could steal cookies, redirect to other URLs or do other evil stuff.
+
+[next slide]
+
+So, to prevent reflected XSS, we need to encode all input from the user, yes,
+even cookies, before we output it to the user.
+
+[next fragment]
+
+To do this in PHP, we simply call the htmlspecialchars function on the input
+before we output it.
+
+Onto the next type of XSS attack!
+
+[next slide]
+
+The stored XSS attack is essentially the same as reflected XSS, but instead of
+feeding the malicious script via the URL, we store the script on the server.
+
+So, given that the attacker has injected scripts via a broken form, when the
+user visits a page that outputs these values, they get attacked.
+
+[next fragment]
+
+The code here simply fetches values from the database and outputs them to the
+user.
+
+[next fragment]
+
+The effect of this is that you get an alert box as the user or something
+much worse!
+
+[next slide]
+
+So, given that stored XSS is essentially the same as reflected XSS, we can apply
+the same fixes to prevent it. Which means encoding values before outputting them
+the user, but we can also prevent the attacker from inputting these values from
+the beginning. This is done by encoding before inserting to the database, but
+also rejecting form submissions that contains invalid data, like script tags.
+
+[next slide]
+
+You can read more about XSS on Detectify and OWASP.
+
+[next slide]
+
+So, let's talk about a not so common way of doing XSS attacks or stealing cookies.
+
+[next fragment]
+
+So, what is domain takeover and what is so dangerous about it?
+
+Domain takeover allows an attacker to inject scripts into your site or steal
+the cookies of the users that visits your site.
+
+[next fragment]
+
+Examples...
+
+[next fragment]
+
+Having CNAME records to external services, like
+
+[next fragment]
+
+S3 buckets
+
+[next fragment]
+
+Heroku apps
+
+[next fragment]
+
+Loading content from external domains
+
+[next fragment]
+
+Like CDNs
+
+[next fragment]
+
+The dangers comes from that S3, Heroku and similar services, doesn't validate
+who owns a bucket or an app domain. Which means that if you point your domain
+towards an S3 bucket, and then remove that bucket, then someone else is able
+to claim that bucket name, and now you point your domain to their bucket instead.
+
+The issue with CDNs is that they might have less security on their ends than you
+do on yours. Which makes them an easier target for an attacker to attack.
+
+[next slide]
+
+Let's talk about something that we're all guilty of doing, which is allowing
+insecure direct object references!
+
+What am I talking about?
+
+[next fragment]
+
+I'm talking about having no authorization checks on page that loads an entity,
+like a user. Instead, relying on that the URL is too hard to guess or that the
+URL is hard to find.
+
+[next fragment]
+
+But there's a problem with that, especially if you use numeric IDs. Which allows
+an attacker to simply guess the next ID by requesting until something responds.
+
+[next fragment]
+
+Relying on obscure URLs is also not good, because you might leak these URLs in
+some way or another.
+
+[next fragment]
+
+A little sidestep, when someone requests a resource they don't have access to
+request, don't return 403, return 404. This makes it harder for an attacker to
+guess your IDs and minimizes the attack surface.
+
+[next fragment]
+
+The fix for insecure direct object references, is of cource to always check that
+the user actually has access to the requested resource.
+
+[next slide]
+
+Read more about insecure direct object references on OWASP. No Detectify article
+on this!
+
+[next slide]
+
+So, bonus round! Let's talk about exposed .git folders!
+
+[next fragment]
+
+By exposing the .git folder, you're exposing your source code, and potentionally
+exposing credentials as well. Be aware, that the .git folder contains all
+commits, which means that if you have removed credentials from git recently,
+they can still be found in an older commit.
+
+[next fragment]
+
+How to fix this then?
+
+[next fragment]
+
+First one is quite obvious, don't run git pull in your web root folder.
+
+[next fragment]
+
+But if you must, prevent access to the .git folder via Apache .htaccess files
+or nginx location rules to return 404 on URLs containing .git.
+
+[next fragment]
+
+If, your .git folder is currently exposed, assume it has been downloaded and
+change all exposed credentials, secrets, configuration values or other things
+you do not wish to share with the world. Go through each commit!
+
+[next slide]
+
+Second bonus round!
+
+[next fragment]
+
+Exposed environment variables allows the attacker to read credentials, secrets
+and other fun stuff.
+
+[next fragment]
+
+The practice of storing credentials is very common on Heroku and similiar
+platforms, it's also the recommended way of storing configuration in Docker
+containers.
+
+[next fragment]
+
+So, how do we fix this then? Well, don't expose your environment variables! It is
+that simple! But in practice, don't keep that pesky info.php file laying around.
+Or any other file which prints the $_ENVIRONMENT variable.
+
+[next slide]
+
+That's it for the introduction, read more about security on OWASP and Detectify.
+
+[next slide]
+
+Let's talk about Detectify!
+
+[next fragment]
+
+So what is Detectify? Detectify is a web vulnerability monitoring service.
+
+[next fragment]
+
+It's software-as-a-service, so there's no application you run in your
+infrastructure and no application to run on your computer.
+
+[next fragment]
+
+It detects the OWASP top 10 vulnerabilities and other vulnerabilites.
+
+[next fragment]
+
+New vulnerabilites are added all the time by our in-house security experts
+and also by external security experts.
+
+[next fragment]
+
+It detects current vulnerabilites on your website
+
+[next fragment]
+
+But it also notifies if we have found any new vulnerabilities on your website.
+
+[next slide]
+
+So, how to start using Detectify? Well, it's quite simple, just follow these
+steps!
+
+[next fragment]
+
+Sign up on our 42-day free trial
+
+[next fragment]
+
+Add a domain, you can add up to five domains during the free trial
+
+[next fragment]
+
+Verify that you own the domain. You can verify via DNS TXT records, Google Analytics,
+HTML tag on your website and also by uploading a file to your server.
+
+[next fragment]
+
+Then you start a scan
+
+[next fragment]
+
+After the scan is done, you read the report and fix the vulnerabilites.
+Repeat until you have no vulnerabilites left!
+
+[next fragment]
+
+[next fragment]
+
+And thus! A safer web!
+
+[next slide]
+
+Questions?
+
+[next slide]
+
+Go hack yourself!
