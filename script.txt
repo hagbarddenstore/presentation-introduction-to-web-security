@@ -1,0 +1,87 @@
+Hi! My name is Kim Johansson, I work for Detectify and I'm gonna give you a
+brief introduction to web security.
+
+Quick disclaimer, the code examples are written in PHP, but I don't guarantee
+they follow best practices or even run!
+
+[next slide]
+
+So, lets start with an easy one which most of you will recognize, the SQL
+injection.
+
+So, what is a SQL injection?
+
+[next fragment]
+
+It's a way for an attacker to inject unexpected code into your SQL queries and
+alter the intent of the query. Example, an attacker could change a select query
+to become a drop database query, thus deleting the entire database. Ouch.
+
+Enough with the talking, let's show some code!
+
+[next slide]
+
+So, given the following PHP code which uses string concatenation to create a
+query; with a value taken from the URL query parameters
+
+[code]
+
+Lets an attacker issue the following request
+
+[next fragment]
+
+[code]
+
+[next fragment]
+
+Which allows the attacker to view all users.
+
+So, now that we've established that SQL injections are dangerous, how do we
+protect against them? Well, given PHP, we could use MySQLis prepared statements
+API.
+
+So, let's change the existing code a bit
+
+[next slide]
+
+[code]
+
+So what did we change? We replaced the string concatenated query with a static
+query and adding the username value as a parameter, lines 2 to 4.
+
+This lets the query parser know that we're gonna replace the question mark with
+a string, rendering all escape attempts useless.
+
+Bonus benefit of using prepared statements is a performance boost, since the
+query parser only needs to parse the query once.
+
+[next slide]
+
+Read more about SQL injections on Detectify and OWASP.
+
+[links]
+
+[next slide]
+
+So, onto the next vulnerability which is XSS -- Cross Site Scripting
+
+[next fragment]
+
+XSS allows an attacker to fool a user to execute a script which isn't a part of
+the actual website, either via URL query parameters or stored scripts 
+injected via a form on the website.
+
+[next slide]
+
+So, let's demonstrate the first type of XSS, the reflected XSS.
+
+[next fragment]
+
+The code here simply creates an input element and sets the value of the "q"
+query parameter as the input elements value. So, how could this be exploited
+by an attacker you ask, well, by injecting some encoded JavaScript in the URL.
+
+[next fragment]
+
+This harmless snippet will create an alert box which says "XSS", but an evil
+attacker could steal cookies, redirect to other URLs or do other evil stuff.

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Introduction to web security</title>
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+                <section>
+                    <h3>Introduction to web security</h3>
+                    <p>Kim Johansson (@hagbarddenstore)
+                </section>
+                <section>
+                    <h3>SQL injections</h3>
+                    <p class="fragment">Allows an attacker to inject code into existing SQL queries</p>
+                </section>
+                <section>
+                    <p>Code:</p>
+                    <pre>
+$db = new mysqli('host', 'username', 'password', 'database');
+
+$query = "SELECT * FROM users WHERE username = '" . <span style="color: red;">$_GET['username']</span> . "' LIMIT 1;";
+
+$result = $db->query($query);
+
+while ($row = $result->fetch_assoc()) {
+    print_r($row);
+}</pre>
+                    <div class="fragment">
+                    <p>Request:</p>
+                    <pre>curl 'http://example.com/user.php?username=%27+OR+1+--'</pre>
+                    </div>
+                    <div class="fragment">
+                    <p>Output:</p>
+                    <pre>Array
+(
+    [id] => 1
+    [username] => admin
+)
+Array
+(
+    [id] => 2
+    [username] => user
+)
+...</pre>
+                    </div>
+                </section>
+                <section>
+                    <p>Improved code</p>
+                    <pre>1: $db = new mysqli('host', 'username', 'password', 'database');
+<span style="color: red;">
+2: $statement = $db->prepare("SELECT * FROM users WHERE username = ? LIMIT 1;");
+
+3: $statement->bind_param("s", $username);
+
+4: $username = $_GET['username'];</span>
+
+5: $result = $statement->execute();
+
+6: while ($row = $result->fetch_assoc()) {
+ :     print_r($row);
+ : }</pre>
+                </section>
+                <section>
+                    <h4>Read more</h4>
+                    <p>Detectify - <a href="http://support.detectify.com/customer/en/portal/articles/1711514-sql-injection">http://support.detectify.com/customer/en/portal/articles/1711514-sql-injection</a></p>
+                    <p>OWASP - <a href="https://www.owasp.org/index.php/SQL_Injection">https://www.owasp.org/index.php/SQL_Injection</a></p>
+                </section>
+                <section>
+                    <h3>CSRF - Cross-site request forgery</h3>
+                    <p class="fragment">Allows an attacker to execute unwanted
+                    actions on a web application where the user is currently
+                    authenticated.
+                    <div class="fragment">
+                    <p>Example:</p>
+                    <p>User visits <code>http://bankfraud.com/</code>, which
+                    loads <code>http://bank.com/transfer_money.php?to_account=10&amp;amount=1000</code>
+                    as an image
+                    </div>
+                </section>
+                <section>
+                    <h4>CSRF - Prevention</h4>
+                    <p class="fragment">Generate a secure token and store this
+                    on the server and also output it as a hidden input element,
+                    then validate on the server on submit</p>
+                    <p class="fragment">Store token in both hidden input field
+                    and cookie and verifying both against token stored on the
+                    server. Called "Double Submit Cookies"</p>
+                    <p class="fragment">Checking referer header, checking origin
+                    header, CAPTCHA, re-authentication, one-time token (BankID)</p>
+                </section>
+                <section>
+                    <h4>Read more</h4>
+                    <p>Detectify - <a href="http://support.detectify.com/customer/en/portal/articles/1969819-login-csrf">http://support.detectify.com/customer/en/portal/articles/1969819-login-csrf</a></p>
+                    <p>OWASP - <a href="https://www.owasp.org/index.php/CSRF">https://www.owasp.org/index.php/CSRF</a></p>
+                </section>
+                <section>
+                    <h3>XSS - Cross-site scripting</h3>
+                    <p class="fragment">Allows an attacker to fool the user to run a script which isn't a part of the website</p>
+                </section>
+                <section>
+                    <h4>Reflected XSS</h4>
+                    <p>Malicious script provided via URL, cookies, other user
+                    provided values</p>
+                    <div class="fragment">
+                    <p>Code:</p>
+                    <pre>&lt;input type="text" name="search" value="&lt;?php echo $_GET['q']; ?&gt;"&gt;</pre>
+                    </div>
+                    <div class="fragment">
+                    <p>Request:</p>
+                    <pre>http://example.com/search.php?q=%22+onfocus%3D%22alert%28%27XSS%27%29%22+autofocus%3D%22</pre>
+                    </div>
+                    <div class="fragment">
+                    <p>Effect:</p>
+                    <p>Alert box with content "XSS"</p>
+                    </div>
+                </section>
+                <section>
+                    <h4>Reflected XSS - Prevention</h4>
+                    <p>Encode all user input (Even cookies!) before outputting
+                    to the user</p>
+                    <div class="fragment">
+                    <p>Code:</p>
+                    <pre>&lt;input type="text" name="search" value="&lt;?php echo htmlspecialchars($_GET['q'], ENT_QUOTES | ENT_HTML401, 'UTF-8'); ?&gt;"&gt;</pre>
+                    </div>
+                </section>
+                <section>
+                    <h4>Stored XSS</h4>
+                    <p>Malicious script provided by server from database, file
+                    or other persistent means which can be altered by a user</p>
+                    <div class="fragment">
+                    <p>Code:</p>
+                    <pre>&lt;?php $items = fetch_items($db); ?&gt;
+...
+&lt;ul&gt;
+&lt;?php foreach ($items as $item) { ?&gt;
+    &lt;li&gt;&lt;?php echo $item; ?>&lt;/li&gt;
+&lt;?php } ?&gt;
+&lt;/ul&gt;</pre>
+                    </div>
+                    <div class="fragment">
+                        <p>Effect:</p>
+                        <p>Alert box(es) with content "XSS"</p>
+                    </div>
+                </section>
+                <section>
+                    <h4>Stored XSS - Prevention</h4>
+                    <p>Use the same techniques used to prevent reflected XSS.</p>
+                    <p>Validating and rejecting input with malicious content is
+                    also a good idea</p>
+                </section>
+                <section>
+                    <h4>Read more</h4>
+                    <p>Detectify - <a href="http://support.detectify.com/customer/en/portal/articles/1711512-cross-site-scripting">http://support.detectify.com/customer/en/portal/articles/1711512-cross-site-scripting</a></p>
+                    <p>OWASP - <a href="https://www.owasp.org/index.php/XSS">https://www.owasp.org/index.php/XSS</a></p>
+                </section>
+                <section>
+                    <h3>Domain takeover</h3>
+                    <p class="fragment">Allows an attacker to inject scripts
+                    via a sub domain or other domain</p>
+                    <div class="fragment">
+                        <p>Examples:</p>
+                        <p class="fragment">CNAME record to external service</p>
+                        <ul>
+                            <li class="fragment">S3 buckets</li>
+                            <li class="fragment">Heroku apps</li>
+                        </ul>
+                        <p class="fragment">Loading content from external domains</p>
+                        <ul>
+                            <li class="fragment">CDNs</li>
+                        </ul>
+                    </div>
+                </section>
+                <section>
+                    <h3>IDOR - Insecure direct object references</h3>
+                    <p class="fragment">Having no authorization check on
+                    direct access (/users/1)</p>
+                    <p class="fragment">If using numeric IDs, allows an attacker
+                    to enumerate entities</p>
+                    <p class="fragment"></p>
+                    <p class="fragment">Relying on obscure URLs (UUID) to hide
+                    protected pages instead of authorization is security by
+                    obscurity, don't do it!</p>
+                    <p class="fragment">Return 404, not 403 on access denied</p>
+                    <div class="fragment">
+                        <p>Fix:</p>
+                        <p>Always check if user has access to requested entity</p>
+                    </div>
+                </section>
+                <section>
+                    <h4>Read more</h4>
+                    <p>OWASP - <a href="https://www.owasp.org/index.php/Top_10_2007-Insecure_Direct_Object_Reference">https://www.owasp.org/index.php/Top_10_2007-Insecure_Direct_Object_Reference</a></p>
+                </section>
+                <section>
+                    <h3>Bonus: Exposed .git</h3>
+                    <p class="fragment">By exposing the .git folder you expose
+                    all your source code to the world, potentionally exposing
+                    credentials as well</p>
+                    <p class="fragment">Fixes:</p>
+                    <p class="fragment">Don't run <code>git pull</code> in your
+                    web root folder</p>
+                    <p class="fragment">Use .htaccess or nginx location rules
+                    to return 404 on URLs containing <code>.git</code></p>
+                    <p class="fragment">If your <code>.git</code> is
+                    exposed, assume it has been downloaded and change
+                    all exposed credentials, from first commit to last</p>
+                </section>
+                <section>
+                    <h3>Bonus: Exposed environment variables</h3>
+                    <p class="fragment">Allows attacker to read credentials
+                    stored as environment variables</p>
+                    <p class="fragment">Storing credentials in environment
+                    variables is common on Heroku and in Docker containers</p>
+                    <div class="fragment">
+                        <p>Fix:</p>
+                        <p>Never have a <code>info.php</code> or similar
+                        executing <code>&lt;?php phpinfo(); ?&gt;</code> or
+                        anything else displaying your environment variables</p>
+                    </div>
+                </section>
+                <section>
+                    <h3>Read more</h3>
+                    <p>OWASP - <a href="https://www.owasp.org/index.php/PHP_Security_Cheat_Sheet">https://www.owasp.org/index.php/PHP_Security_Cheat_Sheet</a></p>
+                    <p>Detectify - <a href="http://support.detectify.com/">http://support.detectify.com/</a></p>
+                </section>
+                <section>
+                    <h3>Let's talk about Detectify!</h3>
+                    <p class="fragment">Web vulnerability monitoring service</p>
+                    <p class="fragment">Software-as-a-Service, no on-premise</p>
+                    <p class="fragment">Detects OWASP top 10 vulnerabilites and
+                    other vulnerabilities</p>
+                    <p class="fragment">New vulnerabilites added by security
+                    experts</p>
+                    <p class="fragment">Detects current vulnerabilities</p>
+                    <p class="fragment">Notifies if new vulnerabilities are found</p>
+                </section>
+                <section>
+                    <h3>Start using Detectify</h3>
+                    <p class="fragment">Sign up on https://detectify.com/createaccount/trial</p>
+                    <p class="fragment">Add a domain</p>
+                    <p class="fragment">Verify domain (DNS, GA, HTML)</p>
+                    <p class="fragment">Start a scan</p>
+                    <p class="fragment">Read report and fix vulnerabilities</p>
+                    <p class="fragment">???</p>
+                    <p class="fragment">A safer web!</p>
+                </section>
+                <section>
+                    <h3>Questions?</h3>
+                    <p>by Kim Johansson (@hagbarddenstore)</p>
+                    <p>www.detectify.com</p>
+                </section>
+                <section>
+                    <h3>Go hack yourself</h3>
+                    <p>Or someone else will!</p>
+                </section>
+			</div>
+		</div>
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+		<script>
+			Reveal.initialize({
+				controls: false,
+				progress: false,
+				history: true,
+				center: false,
+                slideNumber: true,
+				transition: 'none',
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+		</script>
+        <style type="text/css">
+            .reveal h3, .reveal h4 {
+                text-transform: none;
+            }
+
+            pre {
+                font-size: 12pt !important;
+            }
+
+            p {
+                /*font-size: 18pt !important;*/
+            }
+        </style>
+	</body>
+</html>
